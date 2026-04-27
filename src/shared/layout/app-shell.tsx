@@ -53,7 +53,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
       <Titlebar open={open} onToggle={toggle} />
-      <div className="flex min-h-0 flex-1 gap-1.5 px-1.5 pb-1.5">
+      <div className="flex min-h-0 flex-1">
         <AnimatePresence initial={false}>
           {open && (
             <motion.aside
@@ -76,9 +76,29 @@ export function AppShell({ children }: AppShellProps) {
 
 function Titlebar({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const Icon = open ? PanelLeftClose : PanelLeftOpen;
+
+  const handleMouseDown = async (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const win = getCurrentWindow();
+      if (e.detail === 2) {
+        const isMax = await win.isMaximized();
+        if (isMax) await win.unmaximize();
+        else await win.maximize();
+      } else {
+        await win.startDragging();
+      }
+    } catch {
+      // Browser dev — no native window.
+    }
+  };
+
   return (
     <div
       data-tauri-drag-region
+      onMouseDown={handleMouseDown}
       className="flex h-9 shrink-0 items-center gap-2 pl-[78px] pr-3"
     >
       <button
@@ -99,7 +119,7 @@ function Sidebar() {
   return (
     <div
       style={{ width: SIDEBAR_WIDTH }}
-      className="flex h-full flex-col rounded-2xl border border-foreground/10 bg-background"
+      className="flex h-full flex-col border-r border-foreground/10 bg-background"
     >
       <header className="flex items-center gap-2 px-4 pt-4 pb-3">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground/[0.06]">
