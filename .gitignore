@@ -1,0 +1,41 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
+# Tauri / Rust build artifacts
+src-tauri/target
+
+# TanStack generated
+.tanstack/
+
+# Logs
+logs
+*.log
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Brainstorm / superpowers sessions
+.superpowers/
+
+# Claude
+.claude/settings.local.json
