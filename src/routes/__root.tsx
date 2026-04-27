@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { RouteErrorFallback } from "@/shared/components/error-boundary";
+import { AppShell } from "@/shared/layout/app-shell";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -8,10 +9,8 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   return (
-    <div className="relative min-h-screen bg-background text-foreground antialiased">
-      <main className="relative z-10">
-        <Outlet />
-      </main>
-    </div>
+    <AppShell>
+      <Outlet />
+    </AppShell>
   );
 }
