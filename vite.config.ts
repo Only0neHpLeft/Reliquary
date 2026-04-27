@@ -2,9 +2,20 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { execSync } from "node:child_process";
 import path from "path";
 
 const host = process.env.TAURI_DEV_HOST;
+
+const gitHash = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return "dev";
+  }
+})();
 
 export default defineConfig({
   plugins: [TanStackRouterVite(), react(), tailwindcss()],
@@ -12,6 +23,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  define: {
+    __GIT_HASH__: JSON.stringify(gitHash),
   },
   clearScreen: false,
   server: {
