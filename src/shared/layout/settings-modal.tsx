@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
+import { Modal } from "@/shared/components/modal";
+import { useUIStore } from "@/shared/lib/ui-store";
 import { useTheme, type Theme } from "@/shared/lib/theme";
 import { APP_TITLE, GIT_HASH } from "@/shared/lib/version";
 
@@ -31,35 +32,32 @@ const SHORTCUTS: readonly Shortcut[] = [
   { keys: ["⌘", "B"], action: "Toggle sidebar" },
   { keys: ["Esc"], action: "Close palette / overlay" },
   { keys: ["↑", "↓"], action: "Navigate palette results" },
-  { keys: ["⏎"], action: "Run selected command" },
+  { keys: ["⏎"], action: "Send message / run command" },
 ];
 
-export const Route = createFileRoute("/settings")({
-  component: SettingsPage,
-});
+export function SettingsModal() {
+  const open = useUIStore((s) => s.settingsOpen);
+  const setOpen = useUIStore((s) => s.setSettingsOpen);
 
-function SettingsPage() {
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col gap-8 px-8 py-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-foreground/55">
-          Local preferences. Nothing leaves the machine.
-        </p>
-      </header>
-
-      <Section title="Appearance" subtitle="Pick a theme. Applies instantly.">
-        <ThemePicker />
-      </Section>
-
-      <Section title="Shortcuts" subtitle="Global keyboard bindings.">
-        <ShortcutTable />
-      </Section>
-
-      <Section title="About" subtitle="Build metadata for this session.">
-        <AboutPanel />
-      </Section>
-    </div>
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      title="Settings"
+      subtitle="Local preferences. Nothing leaves the machine."
+    >
+      <div className="flex flex-col gap-7">
+        <Section title="Appearance" subtitle="Pick a theme. Applies instantly.">
+          <ThemePicker />
+        </Section>
+        <Section title="Shortcuts" subtitle="Global keyboard bindings.">
+          <ShortcutTable />
+        </Section>
+        <Section title="About" subtitle="Build metadata for this session.">
+          <AboutPanel />
+        </Section>
+      </div>
+    </Modal>
   );
 }
 
@@ -75,7 +73,7 @@ function Section({
   return (
     <section>
       <div className="mb-3">
-        <h2 className="text-sm font-semibold tracking-tight text-foreground/85">{title}</h2>
+        <h3 className="text-sm font-semibold tracking-tight text-foreground/85">{title}</h3>
         <p className="text-xs text-foreground/45">{subtitle}</p>
       </div>
       {children}
@@ -95,7 +93,7 @@ function ThemePicker() {
             key={t.id}
             type="button"
             onClick={() => setTheme(t.id)}
-            className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+            className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
               active
                 ? "border-foreground/30 bg-foreground/[0.05]"
                 : "border-foreground/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.04]"

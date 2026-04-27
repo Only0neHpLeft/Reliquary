@@ -1,85 +1,30 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Search,
-  Home,
-  Zap,
-  BookMarked,
+  Plus,
+  MessageSquare,
   History as HistoryIcon,
-  Aperture as ApertureIcon,
-  Wand2,
-  Network,
-  Mic,
-  Hexagon,
   Settings as SettingsIcon,
-  Activity as ActivityIcon,
-  HelpCircle,
   Sun,
   Moon,
+  Trash2,
   PanelLeftClose,
   PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import { APP_TITLE } from "@/shared/lib/version";
 import { useTheme } from "@/shared/lib/theme";
+import { useUIStore } from "@/shared/lib/ui-store";
+import { useChatStore, type Conversation } from "@/features/chat/store";
 import { CommandPalette, useCommandPalette } from "./command-palette";
-
-// ─── Badge tones (matched to Aperture's pattern) ──────────────────────────────
-
-const BADGE = {
-  soon: "text-foreground/40 bg-foreground/[0.06]",
-  closed: "text-rose-400 bg-rose-400/10",
-  training: "text-amber-400 bg-amber-400/10",
-  planned: "text-sky-400 bg-sky-400/10",
-  muted: "text-foreground/40 bg-foreground/[0.06]",
-} as const;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface NavItem {
-  readonly label: string;
-  readonly to: string;
-  readonly icon: LucideIcon;
-  readonly badge?: string;
-  readonly badgeColor?: string;
-}
-
-interface VesselItem {
-  readonly name: string;
-  readonly icon: LucideIcon;
-  readonly note: string;
-  readonly badge: string;
-  readonly badgeColor: string;
-}
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-const WORKSPACE: readonly NavItem[] = [
-  { label: "Home", to: "/", icon: Home },
-  { label: "Playground", to: "/playground", icon: Zap, badge: "Soon", badgeColor: BADGE.soon },
-  { label: "Library", to: "/library", icon: BookMarked, badge: "Soon", badgeColor: BADGE.soon },
-  { label: "History", to: "/history", icon: HistoryIcon, badge: "Soon", badgeColor: BADGE.soon },
-];
-
-const VESSELS: readonly VesselItem[] = [
-  { name: "Aperture", icon: ApertureIcon, note: "Text · Vision", badge: "Closed", badgeColor: BADGE.closed },
-  { name: "Dantian", icon: Wand2, note: "Image", badge: "Training", badgeColor: BADGE.training },
-  { name: "Meridian", icon: Network, note: "Routing", badge: "Planned", badgeColor: BADGE.planned },
-  { name: "Qi", icon: Mic, note: "Speech", badge: "Deferred", badgeColor: BADGE.muted },
-  { name: "Gu", icon: Hexagon, note: "Textures", badge: "Proposed", badgeColor: BADGE.muted },
-];
-
-const SYSTEM: readonly NavItem[] = [
-  { label: "Settings", to: "/settings", icon: SettingsIcon, badge: "Soon", badgeColor: BADGE.soon },
-  { label: "Activity", to: "/activity", icon: ActivityIcon, badge: "Soon", badgeColor: BADGE.soon },
-  { label: "Help", to: "/help", icon: HelpCircle, badge: "Soon", badgeColor: BADGE.soon },
-];
+import { SettingsModal } from "./settings-modal";
+import { HistoryModal } from "./history-modal";
 
 const SIDEBAR_WIDTH = 256;
 const SIDEBAR_KEY = "reliquary-sidebar";
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
+// ─── Sidebar state hook ───────────────────────────────────────────────────────
 
 function useSidebarOpen(): readonly [boolean, () => void] {
   const [open, setOpen] = useState<boolean>(() => {
@@ -134,10 +79,12 @@ export function AppShell({ children }: AppShellProps) {
               </motion.aside>
             )}
           </AnimatePresence>
-          <div className="min-w-0 flex-1 overflow-auto">{children}</div>
+          <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
         </div>
       </div>
       <CommandPalette open={cmdK.open} onClose={cmdK.onClose} />
+      <SettingsModal />
+      <HistoryModal />
     </>
   );
 }
@@ -191,6 +138,14 @@ function Sidebar({ onSearchClick }: { onSearchClick: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme !== "light";
 
+  const conversations = useChatStore((s) => s.conversations);
+  const activeId = useChatStore((s) => s.activeId);
+  const setActive = useChatStore((s) => s.setActive);
+  const removeConversation = useChatStore((s) => s.removeConversation);
+
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
+  const setHistoryOpen = useUIStore((s) => s.setHistoryOpen);
+
   return (
     <div
       style={{ width: SIDEBAR_WIDTH }}
@@ -201,22 +156,48 @@ function Sidebar({ onSearchClick }: { onSearchClick: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-2">
-        <Section label="Workspace">
-          {WORKSPACE.map((item) => (
-            <NavRow key={item.label} item={item} />
-          ))}
+        <Section
+          label="Conversations"
+          action={
+            <button
+              type="button"
+              onClick={() => setActive(null)}
+              title="New conversation"
+              aria-label="New conversation"
+              className="flex h-5 w-5 items-center justify-center rounded text-foreground/40 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/85"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          }
+        >
+          {conversations.length === 0 ? (
+            <p className="px-2 py-1.5 text-[11px] text-foreground/30">
+              No conversations yet
+            </p>
+          ) : (
+            conversations.map((c) => (
+              <ConversationRow
+                key={c.id}
+                conversation={c}
+                active={c.id === activeId}
+                onClick={() => setActive(c.id)}
+                onDelete={() => removeConversation(c.id)}
+              />
+            ))
+          )}
         </Section>
 
-        <Section label="Vessels">
-          {VESSELS.map((v) => (
-            <VesselRow key={v.name} item={v} />
-          ))}
-        </Section>
-
-        <Section label="System">
-          {SYSTEM.map((item) => (
-            <NavRow key={item.label} item={item} />
-          ))}
+        <Section label="Archive">
+          <ButtonRow
+            icon={HistoryIcon}
+            label="History"
+            onClick={() => setHistoryOpen(true)}
+          />
+          <ButtonRow
+            icon={SettingsIcon}
+            label="Settings"
+            onClick={() => setSettingsOpen(true)}
+          />
         </Section>
       </div>
 
@@ -231,7 +212,9 @@ function Sidebar({ onSearchClick }: { onSearchClick: () => void }) {
             {isDark ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
             <span>{isDark ? "Light" : "Dark"}</span>
           </button>
-          <p className="font-mono text-[10px] tracking-tight text-foreground/35">{APP_TITLE}</p>
+          <p className="font-mono text-[10px] tracking-tight text-foreground/35">
+            {APP_TITLE}
+          </p>
         </div>
       </footer>
     </div>
@@ -254,54 +237,89 @@ function SearchTrigger({ onClick }: { onClick: () => void }) {
   );
 }
 
-function Section({ label, children }: { label: string; children: ReactNode }) {
+function Section({
+  label,
+  action,
+  children,
+}: {
+  label: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="mb-1 pt-2">
-      <h3 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
-        {label}
-      </h3>
+      <div className="mb-1 flex items-center justify-between px-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+          {label}
+        </h3>
+        {action}
+      </div>
       <div className="flex flex-col gap-px">{children}</div>
     </div>
   );
 }
 
-function Badge({ label, color }: { label: string; color: string }) {
-  return (
-    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none ${color}`}>
-      {label}
-    </span>
-  );
-}
-
-function NavRow({ item }: { item: NavItem }) {
-  const Icon = item.icon;
-  return (
-    <Link
-      to={item.to}
-      activeOptions={{ exact: true }}
-      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-      activeProps={{ className: "bg-foreground/[0.06] text-foreground" }}
-    >
-      <Icon className="h-3.5 w-3.5" aria-hidden />
-      <span className="flex-1">{item.label}</span>
-      {item.badge && item.badgeColor && <Badge label={item.badge} color={item.badgeColor} />}
-    </Link>
-  );
-}
-
-function VesselRow({ item }: { item: VesselItem }) {
-  const Icon = item.icon;
+function ConversationRow({
+  conversation,
+  active,
+  onClick,
+  onDelete,
+}: {
+  conversation: Conversation;
+  active: boolean;
+  onClick: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div
-      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.03]"
-      title={`${item.name} · ${item.badge}`}
+      className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+        active
+          ? "bg-foreground/[0.06] text-foreground"
+          : "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground"
+      }`}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0 text-foreground/55" aria-hidden />
-      <div className="flex min-w-0 flex-1 flex-col leading-tight">
-        <span className="truncate text-xs font-medium text-foreground/85">{item.name}</span>
-        <span className="truncate text-[10px] text-foreground/40">{item.note}</span>
-      </div>
-      <Badge label={item.badge} color={item.badgeColor} />
+      <MessageSquare className="h-3.5 w-3.5 shrink-0 text-foreground/45" aria-hidden />
+      <button
+        type="button"
+        onClick={onClick}
+        className="min-w-0 flex-1 truncate text-left"
+        title={conversation.title}
+      >
+        {conversation.title}
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        aria-label={`Delete ${conversation.title}`}
+        title="Delete"
+        className="rounded p-0.5 text-foreground/30 opacity-0 transition-all hover:bg-rose-400/10 hover:text-rose-400 group-hover:opacity-100"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
     </div>
+  );
+}
+
+function ButtonRow({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      <span>{label}</span>
+    </button>
   );
 }

@@ -1,24 +1,17 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "@tanstack/react-router";
 import {
-  Aperture as ApertureIcon,
-  Activity,
-  BookMarked,
-  HelpCircle,
-  Hexagon,
-  History,
-  Home,
-  Mic,
+  History as HistoryIcon,
   Moon,
-  Network,
+  Plus,
   Search,
-  Settings,
+  Settings as SettingsIcon,
   Sparkles,
   Sun,
-  Wand2,
-  Zap,
 } from "lucide-react";
 import { useTheme } from "@/shared/lib/theme";
+import { useUIStore } from "@/shared/lib/ui-store";
+import { useChatStore } from "@/features/chat/store";
 
 // ─── Fuzzy cascade search ─────────────────────────────────────────────────────
 
@@ -95,18 +88,10 @@ function cascadeSearch<T extends { label: string; desc: string; group: string }>
     }
   }
 
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .map((s) => s.item);
+  return scored.sort((a, b) => b.score - a.score).map((s) => s.item);
 }
 
 // ─── Commands ────────────────────────────────────────────────────────────────
-
-const BADGE_SOON = "text-foreground/40 bg-foreground/[0.06]";
-const BADGE_CLOSED = "text-rose-400 bg-rose-400/10";
-const BADGE_TRAINING = "text-amber-400 bg-amber-400/10";
-const BADGE_PLANNED = "text-sky-400 bg-sky-400/10";
-const BADGE_MUTED = "text-foreground/40 bg-foreground/[0.06]";
 
 interface CommandItem {
   readonly id: string;
@@ -114,36 +99,50 @@ interface CommandItem {
   readonly desc: string;
   readonly group: string;
   readonly icon: React.ComponentType<{ className?: string }>;
-  readonly href?: string;
-  readonly action?: () => void;
-  readonly badge?: string;
-  readonly badgeColor?: string;
+  readonly action: () => void;
 }
 
 function useCommands(): readonly CommandItem[] {
   const { setTheme } = useTheme();
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
+  const setHistoryOpen = useUIStore((s) => s.setHistoryOpen);
+  const setActive = useChatStore((s) => s.setActive);
+  const conversations = useChatStore((s) => s.conversations);
 
   return useMemo(
     () => [
-      // Workspace
-      { id: "home", label: "Home", desc: "Dashboard", group: "Workspace", icon: Home, href: "/" },
-      { id: "playground", label: "Playground", desc: "Generate with all vessels", group: "Workspace", icon: Zap, href: "/playground", badge: "Soon", badgeColor: BADGE_SOON },
-      { id: "library", label: "Library", desc: "Saved prompts and outputs", group: "Workspace", icon: BookMarked, href: "/library", badge: "Soon", badgeColor: BADGE_SOON },
-      { id: "history", label: "History", desc: "Recent runs", group: "Workspace", icon: History, href: "/history", badge: "Soon", badgeColor: BADGE_SOON },
-
-      // Vessels
-      { id: "aperture", label: "Aperture", desc: "Text and vision foundation", group: "Vessels", icon: ApertureIcon, href: "/", badge: "Closed", badgeColor: BADGE_CLOSED },
-      { id: "dantian", label: "Dantian", desc: "Image generation (CFM)", group: "Vessels", icon: Wand2, href: "/", badge: "Training", badgeColor: BADGE_TRAINING },
-      { id: "meridian", label: "Meridian", desc: "Inference orchestration", group: "Vessels", icon: Network, href: "/", badge: "Planned", badgeColor: BADGE_PLANNED },
-      { id: "qi", label: "Qi", desc: "Speech-to-text (Qi-Ear)", group: "Vessels", icon: Mic, href: "/", badge: "Deferred", badgeColor: BADGE_MUTED },
-      { id: "gu", label: "Gu", desc: "Minecraft texture model", group: "Vessels", icon: Hexagon, href: "/", badge: "Proposed", badgeColor: BADGE_MUTED },
-
-      // System
-      { id: "settings", label: "Settings", desc: "Preferences and config", group: "System", icon: Settings, href: "/settings", badge: "Soon", badgeColor: BADGE_SOON },
-      { id: "activity", label: "Activity", desc: "Logs and run history", group: "System", icon: Activity, href: "/activity", badge: "Soon", badgeColor: BADGE_SOON },
-      { id: "help", label: "Help", desc: "Documentation and support", group: "System", icon: HelpCircle, href: "/help", badge: "Soon", badgeColor: BADGE_SOON },
-
-      // Theme
+      {
+        id: "new-conversation",
+        label: "New conversation",
+        desc: "Start fresh — clear the input area",
+        group: "Actions",
+        icon: Plus,
+        action: () => setActive(null),
+      },
+      {
+        id: "open-history",
+        label: "History",
+        desc: "Browse and search past conversations",
+        group: "Actions",
+        icon: HistoryIcon,
+        action: () => setHistoryOpen(true),
+      },
+      {
+        id: "open-settings",
+        label: "Settings",
+        desc: "Theme, shortcuts, build info",
+        group: "Actions",
+        icon: SettingsIcon,
+        action: () => setSettingsOpen(true),
+      },
+      ...conversations.slice(0, 8).map((c) => ({
+        id: `conv-${c.id}`,
+        label: c.title,
+        desc: `${c.messages.length} message${c.messages.length === 1 ? "" : "s"}`,
+        group: "Conversations",
+        icon: Sparkles,
+        action: () => setActive(c.id),
+      })),
       { id: "theme-dark", label: "Dark theme", desc: "Pure black", group: "Theme", icon: Moon, action: () => setTheme("dark") },
       { id: "theme-light", label: "Light theme", desc: "Clean white", group: "Theme", icon: Sun, action: () => setTheme("light") },
       { id: "theme-cinnabar", label: "Cinnabar", desc: "Alchemical crimson", group: "Theme", icon: Sparkles, action: () => setTheme("cinnabar") },
@@ -152,7 +151,7 @@ function useCommands(): readonly CommandItem[] {
       { id: "theme-amber", label: "Amber", desc: "Warm golden furnace", group: "Theme", icon: Sparkles, action: () => setTheme("amber") },
       { id: "theme-lotus", label: "Lotus", desc: "Spiritual violet", group: "Theme", icon: Sparkles, action: () => setTheme("lotus") },
     ],
-    [setTheme],
+    [setTheme, setSettingsOpen, setHistoryOpen, setActive, conversations],
   );
 }
 
@@ -170,6 +169,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const commands = useCommands();
+
+  void router; // reserved for future deep-link commands
 
   const filtered = useMemo(() => cascadeSearch(commands, query), [query, commands]);
 
@@ -199,14 +200,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const execute = useCallback(
     (item: CommandItem) => {
       onClose();
-      if (item.action) {
-        item.action();
-        return;
-      }
-      if (!item.href) return;
-      router.navigate({ to: item.href as "/" });
+      item.action();
     },
-    [router, onClose],
+    [onClose],
   );
 
   const onKeyDown = useCallback(
@@ -289,16 +285,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                     >
                       <Icon className="h-4 w-4 shrink-0 text-foreground/30" />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground/70">{item.label}</span>
-                          {item.badge && (
-                            <span
-                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none ${item.badgeColor}`}
-                            >
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-sm font-medium text-foreground/70">{item.label}</span>
                         <p className="truncate text-xs text-foreground/25">{item.desc}</p>
                       </div>
                       {isActive && <span className="text-[10px] text-foreground/20">Enter</span>}
