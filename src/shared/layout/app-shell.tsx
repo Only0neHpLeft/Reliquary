@@ -1,6 +1,16 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Home, Boxes, Activity, Settings, type LucideIcon } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  Sparkles,
+  Home,
+  Boxes,
+  Activity,
+  Settings,
+  PanelLeftClose,
+  PanelLeftOpen,
+  type LucideIcon,
+} from "lucide-react";
 import { APP_TITLE } from "@/shared/lib/version";
 
 interface NavItem {
@@ -17,28 +27,80 @@ const NAV: readonly NavItem[] = [
   { label: "Settings", icon: Settings, soon: true },
 ];
 
-interface AppShellProps {
-  readonly children: ReactNode;
-  readonly title?: string;
+const SIDEBAR_WIDTH = 224;
+const SIDEBAR_KEY = "reliquary-sidebar";
+
+function useSidebarOpen(): readonly [boolean, () => void] {
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(SIDEBAR_KEY) !== "closed";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_KEY, open ? "open" : "closed");
+  }, [open]);
+
+  return [open, () => setOpen((v) => !v)] as const;
 }
 
-export function AppShell({ children, title = "Home" }: AppShellProps) {
+interface AppShellProps {
+  readonly children: ReactNode;
+}
+
+export function AppShell({ children }: AppShellProps) {
+  const [open, toggle] = useSidebarOpen();
+
   return (
-    <div className="flex h-screen w-screen gap-1.5 overflow-hidden bg-background p-1.5">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <Topbar title={title} />
-        <main className="flex-1 overflow-auto rounded-2xl border border-border/60 bg-card">
-          {children}
-        </main>
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
+      <Titlebar open={open} onToggle={toggle} />
+      <div className="flex min-h-0 flex-1 gap-1.5 px-1.5 pb-1.5">
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.aside
+              key="sidebar"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: SIDEBAR_WIDTH, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+              className="h-full shrink-0 overflow-hidden"
+            >
+              <Sidebar />
+            </motion.aside>
+          )}
+        </AnimatePresence>
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
+    </div>
+  );
+}
+
+function Titlebar({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  const Icon = open ? PanelLeftClose : PanelLeftOpen;
+  return (
+    <div
+      data-tauri-drag-region
+      className="flex h-9 shrink-0 items-center gap-2 pl-[78px] pr-3"
+    >
+      <button
+        type="button"
+        data-tauri-drag-region="false"
+        onClick={onToggle}
+        aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+        title={open ? "Collapse sidebar" : "Expand sidebar"}
+        className="flex h-7 w-7 items-center justify-center rounded-md text-foreground/55 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/85"
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
 
 function Sidebar() {
   return (
-    <aside className="flex w-56 shrink-0 flex-col rounded-2xl border border-border/60 bg-card">
+    <div
+      style={{ width: SIDEBAR_WIDTH }}
+      className="flex h-full flex-col rounded-2xl border border-border/60 bg-card"
+    >
       <header className="flex items-center gap-2 px-4 pt-4 pb-3">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground/[0.06]">
           <Sparkles className="h-3.5 w-3.5 text-foreground/65" />
@@ -60,7 +122,7 @@ function Sidebar() {
         <div className="mb-2 h-px bg-border/60" />
         <p className="font-mono text-[10px] tracking-tight text-foreground/40">{APP_TITLE}</p>
       </footer>
-    </aside>
+    </div>
   );
 }
 
@@ -96,20 +158,5 @@ function NavRow({ item }: { item: NavItem }) {
         </span>
       )}
     </button>
-  );
-}
-
-function Topbar({ title }: { title: string }) {
-  return (
-    <header className="flex h-11 items-center justify-between rounded-2xl border border-border/60 bg-card px-4">
-      <div className="flex items-center gap-2.5">
-        <span className="text-sm font-medium text-foreground/85">{title}</span>
-      </div>
-      <div className="flex items-center gap-3 text-xs text-foreground/45">
-        <span>local-first</span>
-        <span className="h-1 w-1 rounded-full bg-foreground/25" />
-        <span>no telemetry</span>
-      </div>
-    </header>
   );
 }
