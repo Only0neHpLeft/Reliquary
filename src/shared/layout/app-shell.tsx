@@ -99,7 +99,7 @@ function Sidebar() {
   return (
     <div
       style={{ width: SIDEBAR_WIDTH }}
-      className="flex h-full flex-col rounded-2xl border border-border/60 bg-card"
+      className="flex h-full flex-col rounded-2xl border border-foreground/10 bg-background"
     >
       <header className="flex items-center gap-2 px-4 pt-4 pb-3">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground/[0.06]">
@@ -109,7 +109,7 @@ function Sidebar() {
       </header>
 
       <div className="px-3 pb-2">
-        <div className="h-px bg-border/60" />
+        <div className="h-px bg-foreground/10" />
       </div>
 
       <nav className="flex flex-col gap-0.5 px-2">
@@ -119,7 +119,7 @@ function Sidebar() {
       </nav>
 
       <footer className="mt-auto px-4 pb-4 pt-3">
-        <div className="mb-2 h-px bg-border/60" />
+        <div className="mb-2 h-px bg-foreground/10" />
         <p className="font-mono text-[10px] tracking-tight text-foreground/40">{APP_TITLE}</p>
       </footer>
     </div>
@@ -153,7 +153,7 @@ function NavRow({ item }: { item: NavItem }) {
       <Icon className="h-3.5 w-3.5" aria-hidden />
       <span>{item.label}</span>
       {item.soon && (
-        <span className="ml-auto rounded-full border border-border/70 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-foreground/45">
+        <span className="ml-auto rounded-full border border-foreground/10 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-foreground/45">
           Soon
         </span>
       )}
