@@ -27,6 +27,7 @@ interface ChatActions {
   readonly removeConversation: (id: string) => void;
   readonly renameConversation: (id: string, title: string) => void;
   readonly clearAll: () => void;
+  readonly seedDemo: (conversations: readonly Conversation[]) => void;
 }
 
 type ChatStore = ChatState & ChatActions;
@@ -87,6 +88,7 @@ export const useChatStore = create<ChatStore>()(
         }));
       },
       clearAll: () => set({ conversations: [], activeId: null }),
+      seedDemo: (conversations) => set({ conversations: [...conversations], activeId: null }),
     }),
     { name: "reliquary-chat" },
   ),

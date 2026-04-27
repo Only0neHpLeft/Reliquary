@@ -17,12 +17,14 @@ import { APP_TITLE } from "@/shared/lib/version";
 import { useTheme } from "@/shared/lib/theme";
 import { useUIStore } from "@/shared/lib/ui-store";
 import { useChatStore, type Conversation } from "@/features/chat/store";
+import { DEMO_CONVERSATIONS } from "@/features/chat/demo";
 import { CommandPalette, useCommandPalette } from "./command-palette";
 import { SettingsModal } from "./settings-modal";
 import { HistoryModal } from "./history-modal";
 
 const SIDEBAR_WIDTH = 256;
 const SIDEBAR_KEY = "reliquary-sidebar";
+const DEMO_SEEDED_KEY = "reliquary-demo-seeded";
 
 // ─── Sidebar state hook ───────────────────────────────────────────────────────
 
@@ -59,6 +61,16 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [open, toggle] = useSidebarOpen();
   const cmdK = useCommandPalette();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(DEMO_SEEDED_KEY)) return;
+    const state = useChatStore.getState();
+    if (state.conversations.length === 0) {
+      state.seedDemo(DEMO_CONVERSATIONS);
+    }
+    localStorage.setItem(DEMO_SEEDED_KEY, "1");
+  }, []);
 
   return (
     <>
