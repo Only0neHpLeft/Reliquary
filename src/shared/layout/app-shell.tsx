@@ -91,6 +91,17 @@ function useSidebarOpen(): readonly [boolean, () => void] {
     localStorage.setItem(SIDEBAR_KEY, open ? "open" : "closed");
   }, [open]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        setOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return [open, () => setOpen((v) => !v)] as const;
 }
 
@@ -267,6 +278,7 @@ function NavRow({ item }: { item: NavItem }) {
   return (
     <Link
       to={item.to}
+      activeOptions={{ exact: true }}
       className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
       activeProps={{ className: "bg-foreground/[0.06] text-foreground" }}
     >
